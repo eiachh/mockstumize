@@ -85,6 +85,11 @@ func Build(dir string) (ResourceMap, error) {
 		}
 	}
 
+	resources, err = ApplyCommonMetadata(resources, kustomization.CommonLabels, kustomization.CommonAnnotations)
+	if err != nil {
+		return nil, err
+	}
+
 	resources, err = ApplyNameTransformers(resources, kustomization.NamePrefix, kustomization.NameSuffix)
 	if err != nil {
 		return nil, err

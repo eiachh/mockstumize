@@ -1,4 +1,6 @@
 resources:
   - ../../base
-  - dev
-  - stage
+
+patchesStrategicMerge:
+  - dev/patch-service.yaml
+  - stage/patch-deployment.yaml

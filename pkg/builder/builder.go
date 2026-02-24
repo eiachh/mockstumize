@@ -49,8 +49,9 @@ func Build(dir string) (ResourceMap, error) {
 			if err != nil {
 				return nil, err
 			}
-			for id, res := range nested {
-				resources[id] = res
+			resources, err = MergeResMaps(resources, nested)
+			if err != nil {
+				return nil, err
 			}
 			continue
 		}

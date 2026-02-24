@@ -13,10 +13,7 @@ func Print(resources []builder.Resource) (string, error) {
 	var buffer bytes.Buffer
 	encoder := yaml.NewEncoder(&buffer)
 	encoder.SetIndent(2)
-	for index, resource := range resources {
-		if index > 0 {
-			buffer.WriteString("---\n")
-		}
+	for _, resource := range resources {
 		if err := encoder.Encode(resource); err != nil {
 			return "", fmt.Errorf("encode resource: %w", err)
 		}

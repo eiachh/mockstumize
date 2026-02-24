@@ -11,8 +11,10 @@ import (
 const kustomizationFileName = "kustomization.yaml"
 
 type Kustomization struct {
-	Resources []string `yaml:"resources"`
-	Patches   []string `yaml:"patchesStrategicMerge,omitempty"`
+	Resources  []string `yaml:"resources"`
+	Patches    []string `yaml:"patchesStrategicMerge,omitempty"`
+	NamePrefix string   `yaml:"namePrefix,omitempty"`
+	NameSuffix string   `yaml:"nameSuffix,omitempty"`
 }
 
 func LoadKustomization(dir string) (Kustomization, error) {

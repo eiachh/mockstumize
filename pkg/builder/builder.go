@@ -84,6 +84,11 @@ func Build(dir string) (ResourceMap, error) {
 		}
 	}
 
+	resources, err = ApplyNameTransformers(resources, kustomization.NamePrefix, kustomization.NameSuffix)
+	if err != nil {
+		return nil, err
+	}
+
 	return resources, nil
 }
 

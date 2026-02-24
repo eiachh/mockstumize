@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mockstumize-app
+spec:
+  serviceName: mockstumize-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mockstumize
+  template:
+    metadata:
+      labels:
+        app: mockstumize
+    spec:
+      containers:
+        - name: app
+          image: redis:7

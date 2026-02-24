@@ -9,15 +9,33 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Resource is a generic YAML document represented as an unstructured map.
 type Resource map[string]any
 
-func Build(dir string) ([]Resource, error) {
+// ResID uniquely identifies a Kubernetes-style resource by its
+// apiVersion, kind, and name.
+type ResID struct {
+	APIVersion string
+	Kind       string
+	Name       string
+}
+
+func (id ResID) String() string {
+	return id.APIVersion + "/" + id.Kind + "/" + id.Name
+}
+
+// ResourceMap maps each ResID to its full resource body.
+type ResourceMap map[ResID]Resource
+
+// Build reads a kustomization directory and returns a ResourceMap containing
+// every resource referenced (directly or transitively).
+func Build(dir string) (ResourceMap, error) {
 	kustomization, err := LoadKustomization(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	var resources []Resource
+	resources := make(ResourceMap)
 	for _, resourcePath := range kustomization.Resources {
 		resolvedPath := filepath.Join(dir, resourcePath)
 		info, err := os.Stat(resolvedPath)
@@ -30,7 +48,9 @@ func Build(dir string) ([]Resource, error) {
 			if err != nil {
 				return nil, err
 			}
-			resources = append(resources, nested...)
+			for id, res := range nested {
+				resources[id] = res
+			}
 			continue
 		}
 
@@ -38,20 +58,47 @@ func Build(dir string) ([]Resource, error) {
 		if err != nil {
 			return nil, err
 		}
-		resources = append(resources, items...)
+		for id, res := range items {
+			resources[id] = res
+		}
 	}
 
 	return resources, nil
 }
 
-func loadResources(path string) ([]Resource, error) {
+// resIDFromResource extracts a ResID from a generic YAML map by reading
+// the apiVersion, kind, and metadata.name fields.
+func resIDFromResource(r Resource) (ResID, error) {
+	apiVersion, _ := r["apiVersion"].(string)
+	kind, _ := r["kind"].(string)
+
+	var name string
+	switch meta := r["metadata"].(type) {
+	case Resource:
+		name, _ = meta["name"].(string)
+	case map[string]any:
+		name, _ = meta["name"].(string)
+	}
+
+	if kind == "" || name == "" {
+		return ResID{}, fmt.Errorf("resource is missing kind or metadata.name")
+	}
+
+	return ResID{
+		APIVersion: apiVersion,
+		Kind:       kind,
+		Name:       name,
+	}, nil
+}
+
+func loadResources(path string) (ResourceMap, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read resource %s: %w", path, err)
 	}
 
 	decoder := yaml.NewDecoder(strings.NewReader(string(data)))
-	var resources []Resource
+	resources := make(ResourceMap)
 	for {
 		var doc Resource
 		if err := decoder.Decode(&doc); err != nil {
@@ -63,7 +110,12 @@ func loadResources(path string) ([]Resource, error) {
 		if len(doc) == 0 {
 			continue
 		}
-		resources = append(resources, doc)
+
+		id, err := resIDFromResource(doc)
+		if err != nil {
+			return nil, fmt.Errorf("identify resource in %s: %w", path, err)
+		}
+		resources[id] = doc
 	}
 
 	return resources, nil

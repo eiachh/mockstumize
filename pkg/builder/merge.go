@@ -1,12 +1,9 @@
 package builder
 
-import "fmt"
-
 // MergeResMaps merges patches into base resources. Each patch is matched to a
 // base resource by its ResID (apiVersion + kind + name). Matching resources are
-// deep-merged so that the patch values override the base. Patches whose ResID
-// does not exist in the base are ignored (kustomize behaviour for strategic
-// merge patches).
+// deep-merged so that the patch values override the base. Patches that do not
+// match an existing resource are added as new resources.
 func MergeResMaps(base, patches ResourceMap) (ResourceMap, error) {
 	result := make(ResourceMap, len(base))
 
@@ -19,7 +16,8 @@ func MergeResMaps(base, patches ResourceMap) (ResourceMap, error) {
 	for id, patch := range patches {
 		baseRes, exists := result[id]
 		if !exists {
-			return nil, fmt.Errorf("patch targets unknown resource %s", id)
+			result[id] = copyResource(patch)
+			continue
 		}
 		result[id] = deepMerge(baseRes, patch)
 	}

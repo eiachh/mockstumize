@@ -28,7 +28,8 @@ func (id ResID) String() string {
 type ResourceMap map[ResID]Resource
 
 // Build reads a kustomization directory and returns a ResourceMap containing
-// every resource referenced (directly or transitively).
+// every resource referenced (directly or transitively), with any
+// patchesStrategicMerge applied on top.
 func Build(dir string) (ResourceMap, error) {
 	kustomization, err := LoadKustomization(dir)
 	if err != nil {
@@ -60,6 +61,26 @@ func Build(dir string) (ResourceMap, error) {
 		}
 		for id, res := range items {
 			resources[id] = res
+		}
+	}
+
+	// Load and apply strategic merge patches.
+	if len(kustomization.Patches) > 0 {
+		patches := make(ResourceMap)
+		for _, patchPath := range kustomization.Patches {
+			resolvedPath := filepath.Join(dir, patchPath)
+			items, err := loadResources(resolvedPath)
+			if err != nil {
+				return nil, fmt.Errorf("load patch %s: %w", patchPath, err)
+			}
+			for id, res := range items {
+				patches[id] = res
+			}
+		}
+
+		resources, err = MergeResMaps(resources, patches)
+		if err != nil {
+			return nil, err
 		}
 	}
 

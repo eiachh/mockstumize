@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mockstumize-worker
+spec:
+  replicas: 4
+  template:
+    spec:
+      containers:
+        - name: worker
+          image: busybox:1.37

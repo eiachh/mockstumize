@@ -1,0 +1,10 @@
+resources:
+  - ../../base
+
+commonLabels:
+  env: staging
+  team: platform
+
+commonAnnotations:
+  owner: mockstumize
+  note: "added by common metadata overlay"
